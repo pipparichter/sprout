@@ -1,6 +1,7 @@
 import pandas as pd 
 import argparse
 from src.embed import ESMEmbedder
+import numpy as np 
 
 # sbatch --mail-user prichter@berkeley.edu --mail-type ALL --mem 100GB --partition gpu --gres gpu:1 --time 24:00:00 --wrap "embed --input-path ./data/dataset_train.csv"
 # sbatch --mail-user prichter@berkeley.edu --mail-type ALL --mem 100GB --partition gpu --gres gpu:1 --time 24:00:00 --wrap "embed --input-path ./data/dataset_test.csv"
