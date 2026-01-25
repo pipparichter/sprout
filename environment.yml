@@ -1,0 +1,47 @@
+name: sprout
+
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+
+dependencies:
+  - python=3.10
+  - numpy
+  - scipy
+  - pandas
+  - scikit-learn
+  - matplotlib
+  - seaborn
+  - bottleneck
+  - numexpr
+  - tables
+  - pytorch
+  - libtorch
+  - transformers
+  - tokenizers
+  - safetensors
+  - huggingface_hub
+  - datasets
+  - biopython
+  - jupyter
+  - jupyterlab
+  - ipykernel
+  - ipywidgets
+  - notebook
+  - pyarrow
+  - hdf5
+  - pillow
+  - lxml
+  - pyyaml
+  - requests
+  - aiohttp
+  - httpx
+  - fsspec
+  - tqdm
+  - joblib
+  - psutil
+  - regex
+  - packaging
+  - typing-extensions
+  - pip
