@@ -12,6 +12,7 @@ class PLMEmbedder():
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model = model.from_pretrained(checkpoint)
         self.model.to(self.device) # Move model to GPU.
+        self.model.half() # Convert weights to float16. 
         self.model.eval() # Set model to evaluation model.
         self.tokenizer = tokenizer.from_pretrained(checkpoint, do_lower_case=False, legacy=True, clean_up_tokenization_spaces=True)
 
@@ -19,12 +20,13 @@ class PLMEmbedder():
 
         # Should contain input_ids and attention_mask. Make sure everything's on the GPU. 
         # The tokenizer defaults mean that add_special_tokens=True and padding=True is equivalent to padding='longest'
-        inputs = {k:torch.tensor(v).to(self.device) for k, v in self.tokenizer(seqs, padding=True).items()}
-        with torch.no_grad():
+        inputs = {k:torch.tensor(v).to(self.device) for k, v in self.tokenizer(seqs, padding=True, return_tensors='pt').items()}
+        # Autocast automatically determines which operations are safe to use float16 in, and which should keep float32 for numerical stability.
+        with torch.no_grad(), torch.cuda.amp.autocast(device_type='cuda', dtype=torch.float16):
             outputs = self.model(**inputs)
         return outputs
    
-    def __call__(self, seqs:list, max_aa_per_batch:int=1000):
+    def __call__(self, seqs:list, max_aa_per_batch:int=10000):
 
         seqs = self._preprocess(seqs)
 
@@ -76,6 +78,6 @@ class ESMEmbedder(PLMEmbedder):
         '''Mean-pool the output embedding'''
         # Transferring the outputs to CPU and reassigning should free up space on the GPU. 
         # https://discuss.pytorch.org/t/is-the-cuda-operation-performed-in-place/84961/6 
-        outputs = outputs.last_hidden_state.cpu() # if (self.model_name == 'pt5') else outputs.pooler_output
+        outputs = outputs.last_hidden_state.cpu().float() # Make sure to convert back to float32. 
         outputs = [self._mean_pool(emb, seq) for emb, seq in zip(outputs, seqs)]
-        return outputs       
+        return outputs      
