@@ -1,4 +1,3 @@
-from transformers import  AutoTokenizer
 from tqdm import tqdm
 import numpy as np
 import torch 
