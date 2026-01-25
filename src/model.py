@@ -4,12 +4,17 @@ import numpy as np
 import copy 
 from tqdm import tqdm
 import pickle 
+from sklearn.preprocessing import StandardScaler
 
 # SEED = 42 
 # np.random.seed(SEED)
 # random.seed(SEED)
 # torch.manual_seed(SEED)
 # torch.cuda.manual_seed(SEED)
+
+def get_auroc():
+    pass 
+
 
 
 class MLP(torch.nn.Module):
@@ -149,9 +154,9 @@ class Ensemble():
         with open(path, 'rb') as f:
             info = pickle.load(f)
         
-        obj = cls(n_models=saved['n_models'], model=model_class)
-        for model, state_dict, scaler in zip(ensemble.models, info['state_dicts'], info['scalers']):
-            model.load_state_dict(state)
+        obj = cls(n_models=info['n_models'], model=model_class)
+        for model, state_dict, scaler in zip(obj.models, info['state_dicts'], info['scalers']):
+            model.load_state_dict(state_dict)
             model.scaler = scaler
         
         return obj
