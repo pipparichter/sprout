@@ -1,7 +1,9 @@
 import pandas as pd 
-import arparse
+import argparse
 from src.embed import ESMEmbedder
 
+# sbatch --mail-user prichter@berkeley.edu --mail-type ALL --mem 100GB --partition gpu --gres gpu:1 --time 24:00:00 --wrap "embed --input-path ./data/dataset_train.csv"
+# sbatch --mail-user prichter@berkeley.edu --mail-type ALL --mem 100GB --partition gpu --gres gpu:1 --time 24:00:00 --wrap "embed --input-path ./data/dataset_test.csv"
 def embed():
 
     parser = argparse.ArgumentParser()
