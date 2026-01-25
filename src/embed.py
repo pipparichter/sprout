@@ -67,7 +67,6 @@ class ESMEmbedder(PLMEmbedder):
         checkpoint = ESMEmbedder.checkpoints.get(model_size)
 
         super(ESMEmbedder, self).__init__(model=models[pooler], tokenizer=AutoTokenizer, checkpoint=checkpoint)
-        self.pooler = poolers.get(pooler, None)
 
     def _preprocess(self, seqs:list):
         # Based on the example Jupyter notebook, it seems as though sequences require no real pre-processing for the ESM model.
