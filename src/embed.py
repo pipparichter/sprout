@@ -63,10 +63,10 @@ class ESMEmbedder(PLMEmbedder):
 
     def __init__(self, model_size:str='650m'):
 
-        models = {'gap':EsmModel, 'log':EsmForMaskedLM, 'cls':EsmModel}
+        # models = {'gap':EsmModel, 'log':EsmForMaskedLM, 'cls':EsmModel}
         checkpoint = ESMEmbedder.checkpoints.get(model_size)
 
-        super(ESMEmbedder, self).__init__(model=models[pooler], tokenizer=AutoTokenizer, checkpoint=checkpoint)
+        super(ESMEmbedder, self).__init__(model=EsmModel, tokenizer=AutoTokenizer, checkpoint=checkpoint)
 
     def _preprocess(self, seqs:list):
         # Based on the example Jupyter notebook, it seems as though sequences require no real pre-processing for the ESM model.
