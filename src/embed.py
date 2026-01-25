@@ -1,83 +1,60 @@
-from transformers import EsmTokenizer, EsmModel, AutoTokenizer, EsmForMaskedLM
-from transformers import T5EncoderModel, T5Tokenizer 
+from transformers import  AutoTokenizer
 from tqdm import tqdm
 import numpy as np
 import torch 
+import esm
+from esm import BatchConverter
+
+DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
-class PLMEmbedder():
 
-    def __init__(self, model=None, tokenizer=None, checkpoint:str=None):
+class Embedder():
 
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.model = model.from_pretrained(checkpoint)
-        self.model.to(self.device) # Move model to GPU.
+    def __init__(self):
+
+        self.model, self.alphabet = esm.pretrained.esm2_t33_650M_UR50D()
+        self.model.to(DEVICE) # Move model to GPU.
         self.model.half() # Convert weights to float16. 
         self.model.eval() # Set model to evaluation model.
-        self.tokenizer = tokenizer.from_pretrained(checkpoint, do_lower_case=False, legacy=True, clean_up_tokenization_spaces=True)
 
-    def embed_batch(self, seqs:list) -> torch.FloatTensor:
+        self.batch_converter = self.alphabet.get_batch_converter()
 
-        # Should contain input_ids and attention_mask. Make sure everything's on the GPU. 
-        # The tokenizer defaults mean that add_special_tokens=True and padding=True is equivalent to padding='longest'
-        inputs = {k:torch.tensor(v).to(self.device) for k, v in self.tokenizer(seqs, padding=True, return_tensors='pt').items()}
+    def embed_batch(self, batch) -> torch.FloatTensor:
+
+        # BatchConverter expects a list of tuples of the form: [(id, seq), (id, seq)]
+        batch_labels, batch_seqs, batch_tokens = self.batch_converter(batch)
+        batch_lengths = [len(seq) for (_, seq) in batch]
+        batch_tokens = batch_tokens.to(DEVICE)
+
         # Autocast automatically determines which operations are safe to use float16 in, and which should keep float32 for numerical stability.
         with torch.no_grad(), torch.cuda.amp.autocast(device_type='cuda', dtype=torch.float16):
-            outputs = self.model(**inputs)
+            outputs = self.model(batch_tokens, repr_layers=[33], return_contacts=False) # Layer 33 is the last layer of the model. 
+            # This has shape tensor(batch_size, length, dim). 
+            outputs = outputs['representations'][33]
+            outputs = [outputs[i, :length, :].mean(dim=1) for i, length in enumerate(batch_lengths)] # Remove the padding and mean-pool.
         return outputs
    
-    def __call__(self, seqs:list, max_aa_per_batch:int=10000):
+    def __call__(self, inputs, max_aa_per_batch:int=10000):
 
-        seqs = self._preprocess(seqs)
+        inputs = [(id_, seq.replace('*', '')) for (id_, seq) in inputs] # Just make sure there's no terminal asterisk.  
 
-        embs = list()
+        embeddings = list()
         aa_count = 0
-        batch_seqs = list()
-        for seq in tqdm(seqs, desc='PLMEmbedder.__call__'):
+        batch = list()
+        for (id_, seq) in tqdm(inputs, desc='PLMEmbedder.__call__'):
 
-            batch_seqs.append(seq)
+            batch.append((id_, seq))
             aa_count += len(seq)
 
             if aa_count > max_aa_per_batch:
-                outputs = self.embed_batch(batch_seqs)
-                embs += self._postprocess(outputs, seqs=batch_seqs)
-                batch_seqs = list()
-                aa_count = 0
+                embeddings += self.embed_batch(batch)
+                batch, aa_count = list(), 0
 
         # Handles the case in which the minimum batch size is not reached.
         if aa_count > 0:
-            outputs = self.embed_batch(batch_seqs)
-            embs += self._postprocess(outputs, seqs=batch_seqs)
+            embeddings += self.embed_batch(batch)
 
-        embs = torch.cat([torch.unsqueeze(emb, 0) for emb in embs]).float()
-        return embs.numpy()
+        embeddings = torch.cat([torch.unsqueeze(embedding, 0) for embedding in embeddings]).cpu().float()
+        return embeddings.numpy()
 
-
-
-class ESMEmbedder(PLMEmbedder):
-    checkpoints ={'3b':'facebook/esm2_t36_3B_UR50D', '650m':'facebook/esm2_t33_650M_UR50D'}
-
-    @staticmethod
-    def _mean_pool(emb:torch.FloatTensor, seq:str) -> torch.FloatTensor:
-        emb = emb[1:len(seq) + 1] # First remove the CLS token from the mean-pool, as well as any padding... 
-        emb = emb.mean(dim=0)
-        return emb 
-
-    def __init__(self, model_size:str='650m'):
-
-        # models = {'gap':EsmModel, 'log':EsmForMaskedLM, 'cls':EsmModel}
-        checkpoint = ESMEmbedder.checkpoints.get(model_size)
-
-        super(ESMEmbedder, self).__init__(model=EsmModel, tokenizer=AutoTokenizer, checkpoint=checkpoint)
-
-    def _preprocess(self, seqs:list):
-        # Based on the example Jupyter notebook, it seems as though sequences require no real pre-processing for the ESM model.
-        return [seq.replace(r'*', '') for seq in seqs] # Just make sure there's no terminal asterisk.  
-
-    def _postprocess(self, outputs:torch.FloatTensor, seqs:list=None):
-        '''Mean-pool the output embedding'''
-        # Transferring the outputs to CPU and reassigning should free up space on the GPU. 
-        # https://discuss.pytorch.org/t/is-the-cuda-operation-performed-in-place/84961/6 
-        outputs = outputs.last_hidden_state.cpu().float() # Make sure to convert back to float32. 
-        outputs = [self._mean_pool(emb, seq) for emb, seq in zip(outputs, seqs)]
-        return outputs      

@@ -1,6 +1,6 @@
 import pandas as pd 
 import argparse
-from src.embed import ESMEmbedder
+from src.embed import Embedder 
 import numpy as np 
 
 # sbatch --mail-user prichter@berkeley.edu --mail-type ALL --mem 100GB --partition gpu --gres gpu:1 --time 24:00:00 --wrap "embed --input-path ./data/dataset_train.csv"
@@ -22,8 +22,9 @@ def embed():
     store = pd.HDFStore(output_path, mode='w', table=True) # Should confirm that the file already exists. 
     store.put('metadata', df, format='table', data_columns=None)
 
-    embedder = ESMEmbedder()
-    embeddings = embedder(df.seq.values.tolist())
+    inputs = list(zip(df.index.values.tolist(), df.seq.values.tolist()))
+    embedder = Embedder()
+    embeddings = embedder(inputs)
     store.put('embeddings', pd.DataFrame(embeddings, index=df.index), format='table', data_columns=None) 
     store.close()
     print(f'embed: Embeddings saved to {output_path}.')
