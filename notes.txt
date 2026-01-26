@@ -1,3 +1,23 @@
+When setting up the environment for generating ESM embedding, there were lots of dependency issues (unclear why, but seemed to be related to 
+conflicting versions of PyTorch, and possibly the transformers library). The problem also might be related to the fact that it seems like 
+you can't have GPU-enabled PyTorch and CPU PyTorch installed in the same environment, which conflict. 
+To get it to work, I had to create a new, separate environment especially for running the embedding code on a GPU. 
+I created sprout-embed with the following set of commands:
+
+conda create -n sprout-embed python=3.10
+conda activate sprout-gpu 
+python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 # Installs PyTorch GPU from the pip wheel. 
+python -m pip install fair-esm # transformers library no longer supports ESM. 
+mamba install pandas tqdm pytables # Other libraries necessary for handling other stuff in the embedding code. 
+mamba install scikit-learn
+mamba install -c conda-forge py-xgboost-gpu
+
+For creating the regular environment, I did the following:
+conda create -n sprout-cpu python=3.10
+mamba install -c bioconda -c conda-forge pandas numpy tqdm pytables matplotlib pytorch lxml seaborn biopython requests
+mamba install -c conda-forge jupyterlab notebook ipykernel
+mamba install -c conda-forge py-xgboost-cpu
+
 https://arxiv.org/abs/1911.03918 
 
 https://arxiv.org/abs/2201.08528v3

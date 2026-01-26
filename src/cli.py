@@ -2,6 +2,10 @@ import pandas as pd
 import argparse
 from src.embed import Embedder 
 import numpy as np 
+from src.model import MLP, Tree
+from src.dataset import Dataset, split
+import os 
+import pickle
 
 # sbatch --mail-user prichter@berkeley.edu --mail-type ALL --mem 100GB --partition gpu --gres gpu:1 --time 24:00:00 --wrap "embed --input-path ./data/dataset_train.csv"
 # sbatch --mail-user prichter@berkeley.edu --mail-type ALL --mem 100GB --partition gpu --gres gpu:1 --time 24:00:00 --wrap "embed --input-path ./data/dataset_test.csv"
@@ -28,3 +32,34 @@ def embed():
     store.put('embeddings', pd.DataFrame(embeddings, index=df.index), format='table', data_columns=None) 
     store.close()
     print(f'embed: Embeddings saved to {output_path}.')
+
+
+
+MLP_PARAMS = {'epochs':10, 'alpha':0.5, 'lr':1e-4, 'batch_size':64}
+TREE_PARAMS = {}
+
+def train():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dataset-path', type=str)
+    parser.add_argument('--output-path', default=None, type=str)
+    parser.add_argument('--model-class', default='mlp')
+    parser.add_argument('--model-id', default='0')
+    parser.add_argument('--output-dir', default='.')
+    args = parser.parse_args()
+
+    model = MLP(model_id=args.model_id)
+    dataset = Dataset.from_hdf(args.dataset_path)
+    dataset_train, dataset_test = split(dataset)
+
+    info = dict()
+    info['results'] = model.fit((dataset_train, dataset_test), **MLP_PARAMS)
+    info.update(MLP_PARAMS)
+
+    model_path = os.path.join(args.output_dir, f'{model.model_id}.pkl')
+    summary_path = os.path.join(args.output_dir, f'{model.model_id}.summary.pkl')
+    model.save(path=model_path)
+
+    with open(summary_path, 'wb') as f:
+        pickle.dump(info, f)
+
+

@@ -6,12 +6,17 @@ from tqdm import tqdm
 import pickle 
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import roc_auc_score
+import xgboost as xgb
+import torch.nn.functional as F
 
 # SEED = 42 
 # np.random.seed(SEED)
 # random.seed(SEED)
 # torch.manual_seed(SEED)
 # torch.cuda.manual_seed(SEED)
+
+
+DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 def get_auroc(labels, outputs):
     '''Compute the ROC AUC (Area Under the Receiver Operating Characteristic Curve) score, which evaluates model 
@@ -36,6 +41,34 @@ class MLP(torch.nn.Module):
         self.scaler = StandardScaler()
         self.to(DEVICE)
 
+    
+    def save(self, path:str=None):
+        info = {'model_id':self.model_id}
+        info['scaler'] = self.scaler
+        # Pickling the full model can break if the class definition changes or Python and PyTorch versions differ.
+        # Just want to save the state dict for compatibility.
+        info['model'] = self.state_dict()
+        if path is not None:
+            return info
+        with open(path, 'wb') as f:
+            pickle.dump(info, f)
+
+    
+    @classmethod
+    def from_dict(cls, info:dict):
+        obj = cls()
+        obj.model_id = info.get('model_id', '')
+        obj.load_state_dict(info['model'])
+        obj.scaler = info['scaler']
+        return obj
+    
+    @classmethod
+    def load(path:str):
+        with open(path, 'rb') as f:
+            info = pickle.load(f)
+        return MLP.from_dict(info)
+
+
     def _fit_loss_weights(self, dataset_train, alpha:float=0.5):
         n_1, n_0 = (dataset_train.labels == 1).sum(), (dataset_train.labels == 0).sum()
         assert n_1 > n_0, 'MLP.loss: Expect label 1 to be the majority class.'
@@ -53,6 +86,7 @@ class MLP(torch.nn.Module):
         # F.cross_entropy applies softmax under the hood, so do not apply twice.
         return F.cross_entropy(outputs, targets, weight=self.loss_weights)
 
+    @staticmethod
     def _get_dataloader(dataset_train, alpha:float=0, batch_size:int=64):
         n_1, n_0 = (dataset_train.labels == 1).sum(), (dataset_train.labels == 0).sum()
         assert n_1 > n_0, 'MLP.loss: Expect label 0 to be the minority class.'
@@ -119,18 +153,87 @@ class MLP(torch.nn.Module):
         return {'model_output_0':outputs[:, 0].ravel(), 'model_output_1':outputs[:, 1].ravel()}
 
 
+# https://xgboost.readthedocs.io/en/stable/python/python_intro.html
 class Tree():
-    pass 
+
+    # params = {'max_depth':2, 'eta':1, 'objective': 'binary:logistic'}
+    # params['nthread'] = 4
+    # params['eval_metric'] = 'auc'
+
+    @staticmethod
+    def _get_dmatrix(dataset):
+
+        embeddings, labels = dataset.to_numpy(labels=True)
+        dataset = xgb.DMatrix(embeddings, label=labels)
+        return dataset 
+    
+
+    def save(self, path:str=None):
+        info = {'model_id':self.model_id}
+        info['scaler'] = self.scaler
+        info['model'] = self.model.save_raw() # Serializes the tree. 
+        if path is not None:
+            return info
+        with open(path, 'wb') as f:
+            pickle.dump(info, f)
+
+    @classmethod
+    def from_dict(cls, info:dict):
+        obj = cls()
+        obj.model_id = info.get('model_id', '')
+        obj.model = xgb.Booster()
+        obj.model.load_model(info['model'])
+        obj.scaler = info['scaler']
+        return obj
+    
+    @classmethod
+    def load(path:str):
+        with open(path, 'rb') as f:
+            info = pickle.load(f)
+        return Tree.from_dict(info)
+    
+    @classmethod
+    def load(cls, model, scaler, model_id:int=''):
+        obj = cls()
+        obj.scaler = scaler 
+        obj.model_id = model_id
+        obj.model = xgb.Booster()
+        obj.model.load_model(model)
+        return obj
+    
+    def _fit_scaler(self, dataset_train:np.ndarray, dataset_test:np.ndarray):
+        self.scaler.fit(dataset_train)
+        dataset_train = self.scaler.transform(dataset_train)
+        dataset_test = self.scaler.transform(dataset_test)
+        return dataset_train, dataset_test
+    
+    def __init__(self, model_id:int=0):
+
+        self.model_id = f'tree_{model_id}' 
+        self.model = None
+        self.scaler = StandardScaler()
+
+    def fit(self, datasets, num_rounds, **params):
+        dataset_train, dataset_test = datasets
+        dataset_train, dataset_test = self._fit_scaler(dataset_train, dataset_test)
+        dataset_train = Tree._get_dmatrix(dataset_train)
+        dataset_test = Tree._get_dmatrix(dataset_test)
+        eval_list = [(dataset_train, 'train'), (dataset_test, 'eval')]
+
+        self.model = xgb.train(params, dataset_train, num_rounds, eval_list)
+        self.model.set_attr(model_id=self.model_id)
+
+    def predict(self, dataset):
+        pass
 
 
 
 class Ensemble():
 
-
-    def __init__(self, n_models:int=5, model_class=MLP):
+    def __init__(self, n_models:int=5, model_class=MLP, init_models:bool=True):
 
         self.n_models = n_models
-        self.models = [model_class(model_id=i) for i in range(n_models)]
+        self.models = [] if (not init_models) else [model_class(model_id=i) for i in range(n_models)]
 
     def fit(self, datasets, epochs:int=100, lr:float=1e-4, batch_size:int=64, alpha:float=0.5):
 
@@ -144,11 +247,7 @@ class Ensemble():
 
     def save(self, path):
         info = {'n_models': self.n_models}
-        info['model_ids'] = [m.model_id for m in self.models]
-        # Pickling the full model can break if the class definition changes or Python and PyTorch versions differ.
-        # Just want to save the state dict for compatibility.
-        info['state_dicts'] = [m.state_dict() for m in self.models],
-        info['scalers'] = [m.scaler for m in self.models]
+        info['models'] = [model.save(path=None) for model in self.models]
         with open(path, 'wb') as f:
             pickle.dump(info, f)
 
@@ -157,12 +256,10 @@ class Ensemble():
         with open(path, 'rb') as f:
             info = pickle.load(f)
         
-        obj = cls(n_models=info['n_models'], model=model_class)
-        for model, state_dict, scaler in zip(obj.models, info['state_dicts'], info['scalers']):
-            model.load_state_dict(state_dict)
-            model.scaler = scaler
-        
+        obj = cls(n_models=info['n_models'], model_class=model_class, init_models=False)
+        obj.models = [model_class.from_dict(model_info) for model_info in info['models']]
         return obj
+    
 
 
 

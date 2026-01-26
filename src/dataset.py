@@ -1,11 +1,12 @@
 import pandas as pd
 import numpy as np
 import torch
-from torch.nn.functional import one_hot
 import copy
-import tables 
 from tqdm import tqdm
 import warnings 
+from torch.utils.data import Subset
+from sklearn.model_selection import train_test_split
+
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -14,15 +15,22 @@ class Dataset(torch.utils.data.Dataset):
 
     def __init__(self, embeddings:np.ndarray=None, index:np.ndarray=None, labels:np.ndarray=None, metadata:pd.DataFrame=None):
 
-        self.path = path # Store the path from which the Dataset was loaded. 
-
         self.metadata = metadata
         self.index = index
-        self.embeddings = torch.tensor(embeddings, dtype=torch.float32).to(DEVICE) if (embedding is not None) else embedding
+        self.embeddings = torch.tensor(embeddings, dtype=torch.float32).to(DEVICE) if (embeddings is not None) else embeddings
         self.labels = torch.tensor(labels, dtype=torch.long).to(DEVICE) if (labels is not None) else None
 
     def __len__(self):
         return len(self.index)
+    
+    def to_numpy(self, labels:bool=False):
+        '''Convert embeddings and labels to a numpy array.'''
+        embeddings = self.embeddings.cpu().numpy()
+        if labels:
+            labels = self.labels.cpu().numpy()
+            return embeddings, labels 
+        else:
+            return embeddings
     
 
     @classmethod
@@ -46,3 +54,17 @@ class Dataset(torch.utils.data.Dataset):
         if (self.labels is not None):
             item['label'] = self.labels[idx]
         return item
+    
+
+
+def split(dataset, random_state:int=42):
+    '''Split the input dataset into two parts for training and validation.'''
+
+    _, labels = dataset.to_numpy(labels=True)
+    idxs = np.arange(len(dataset))
+    train_idxs, test_idxs = train_test_split(idxs, test_size=0.2, stratify=labels, random_state=random_state)
+
+    dataset_train = Subset(dataset, train_idxs)
+    dataset_test = Subset(dataset, test_idxs)
+    return dataset_train, dataset_test
+
