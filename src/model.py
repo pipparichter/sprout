@@ -5,6 +5,7 @@ import copy
 from tqdm import tqdm
 import pickle 
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import roc_auc_score
 
 # SEED = 42 
 # np.random.seed(SEED)
@@ -12,9 +13,11 @@ from sklearn.preprocessing import StandardScaler
 # torch.manual_seed(SEED)
 # torch.cuda.manual_seed(SEED)
 
-def get_auroc():
-    pass 
-
+def get_auroc(labels, outputs):
+    '''Compute the ROC AUC (Area Under the Receiver Operating Characteristic Curve) score, which evaluates model 
+    performance in a threshold-agnostic way. It is based on the probability of a positive example being ranked more highly
+    than a negative example.'''
+    return roc_auc_score(labels, outputs, average='macro') 
 
 
 class MLP(torch.nn.Module):
