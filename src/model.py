@@ -33,7 +33,7 @@ class MLP(torch.nn.Module):
     
         self.model_id = f'mlp_{model_id}' 
 
-        layers = [torch.nn.Linear(1024, 512, dtype=torch.float32), torch.nn.ReLU()]
+        layers = [torch.nn.Linear(1280, 512, dtype=torch.float32), torch.nn.ReLU()]
         layers += [torch.nn.Linear(512, 256, dtype=torch.float32), torch.nn.ReLU()]
         layers += [torch.nn.Linear(256, 128, dtype=torch.float32), torch.nn.ReLU()]
         layers += [torch.nn.Linear(128, 2, dtype=torch.float32)]
