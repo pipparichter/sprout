@@ -59,7 +59,7 @@ def train():
     summary_path = os.path.join(args.output_dir, f'{model.model_id}.summary.json')
     model.save(path=model_path)
 
-    with open(summary_path, 'wb') as f:
+    with open(summary_path, 'w') as f:
         json.dump(info, f)
 
 
