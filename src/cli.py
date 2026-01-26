@@ -36,7 +36,7 @@ def embed():
 
 
 
-MLP_PARAMS = {'epochs':10, 'alpha':0.5, 'lr':1e-4, 'batch_size':64}
+MLP_PARAMS = {'epochs':20, 'alpha':0.5, 'lr':1e-4, 'batch_size':64}
 TREE_PARAMS = {}
 
 def train():
