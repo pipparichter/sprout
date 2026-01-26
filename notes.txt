@@ -10,11 +10,11 @@ python -m pip install torch torchvision torchaudio --index-url https://download.
 python -m pip install fair-esm # transformers library no longer supports ESM. 
 mamba install pandas tqdm pytables # Other libraries necessary for handling other stuff in the embedding code. 
 mamba install scikit-learn
-mamba install -c conda-forge py-xgboost-gpu
+python -m pip install xgboost==2.1.4 --upgrade # Binaries for GPU xgboost which are compatible with recent versions of cuda are not yet available as binaries on conda.
 
 For creating the regular environment, I did the following:
-conda create -n sprout-cpu python=3.10
-mamba install -c bioconda -c conda-forge pandas numpy tqdm pytables matplotlib pytorch lxml seaborn biopython requests
+conda create -n sprout python=3.10
+mamba install -c bioconda -c conda-forge pandas numpy tqdm scipy pytables matplotlib pytorch lxml seaborn biopython requests
 mamba install -c conda-forge jupyterlab notebook ipykernel
 mamba install -c conda-forge py-xgboost-cpu
 
