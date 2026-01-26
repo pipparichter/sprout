@@ -10,7 +10,7 @@ commands = list()
 # commands += ['prune=src.cli:prune']
 # commands += ['library=src.cli:library']
 commands += ['embed=src.cli:embed']
-commands += ['embed=src.cli:train']
+commands += ['train=src.cli:train']
 # commands += ['model=src.cli:model']
 # commands += ['cluster=src.cli:cluster']
 # commands += ['dataset=src.cli:dataset']
