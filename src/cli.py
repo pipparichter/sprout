@@ -5,7 +5,8 @@ import numpy as np
 from src.model import MLP, Tree
 from src.dataset import Dataset, split
 import os 
-import pickle
+# import pickle
+import json
 
 # sbatch --mail-user prichter@berkeley.edu --mail-type ALL --mem 100GB --partition gpu --gres gpu:1 --time 24:00:00 --wrap "embed --input-path ./data/dataset_train.csv"
 # sbatch --mail-user prichter@berkeley.edu --mail-type ALL --mem 100GB --partition gpu --gres gpu:1 --time 24:00:00 --wrap "embed --input-path ./data/dataset_test.csv"
@@ -55,10 +56,10 @@ def train():
     info.update(MLP_PARAMS)
 
     model_path = os.path.join(args.output_dir, f'{model.model_id}.pkl')
-    summary_path = os.path.join(args.output_dir, f'{model.model_id}.summary.pkl')
+    summary_path = os.path.join(args.output_dir, f'{model.model_id}.summary.json')
     model.save(path=model_path)
 
     with open(summary_path, 'wb') as f:
-        pickle.dump(info, f)
+        json.dump(info, f)
 
 

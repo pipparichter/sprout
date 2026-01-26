@@ -48,7 +48,7 @@ class MLP(torch.nn.Module):
         # Pickling the full model can break if the class definition changes or Python and PyTorch versions differ.
         # Just want to save the state dict for compatibility.
         info['model'] = self.state_dict()
-        if path is not None:
+        if path is None:
             return info
         with open(path, 'wb') as f:
             pickle.dump(info, f)
@@ -172,7 +172,7 @@ class Tree():
         info = {'model_id':self.model_id}
         info['scaler'] = self.scaler
         info['model'] = self.model.save_raw() # Serializes the tree. 
-        if path is not None:
+        if path is None:
             return info
         with open(path, 'wb') as f:
             pickle.dump(info, f)
