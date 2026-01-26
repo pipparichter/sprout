@@ -40,7 +40,7 @@ class Dataset(torch.utils.data.Dataset):
         embeddings = embedding_df.values.copy() # Why do I need to copy this?
         metadata, labels = None, None
         try:
-            metadata = Dataset._read_hdf(path, key='metadata')
+            metadata = pd.read_hdf(path, key='metadata')
             labels = (metadata.label.values) if ('label' in metadata.columns) else None
             assert len(embedding_df) == len(metadata), 'Dataset.from_hdf: The indices of the embedding and the metadata do not match.'
             assert np.all(embedding_df.index == metadata.index), 'Dataset.from_hdf: The indices of the embedding and the metadata do not match.'
