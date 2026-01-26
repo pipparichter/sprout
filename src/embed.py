@@ -27,7 +27,7 @@ class Embedder():
         batch_tokens = batch_tokens.to(DEVICE)
 
         # Autocast automatically determines which operations are safe to use float16 in, and which should keep float32 for numerical stability.
-        with torch.no_grad(), torch.cuda.amp.autocast('cuda', True, dtype=torch.float16):
+        with torch.no_grad(), torch.cuda.amp.autocast(enabled=True, dtype=torch.float16):
             outputs = self.model(batch_tokens, repr_layers=[33], return_contacts=False) # Layer 33 is the last layer of the model. 
             # This has shape tensor(batch_size, length, dim). 
             outputs = outputs['representations'][33]
