@@ -8,17 +8,14 @@ from torch.utils.data import Subset
 from sklearn.model_selection import train_test_split
 
 
-DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-
 class Dataset(torch.utils.data.Dataset):
-    label_map = {'spurious':0, 'real':1}
 
     def __init__(self, embeddings:np.ndarray=None, index:np.ndarray=None, labels:np.ndarray=None, metadata:pd.DataFrame=None):
 
         self.metadata = metadata
         self.index = index
-        self.embeddings = torch.tensor(embeddings, dtype=torch.float32).to(DEVICE) if (embeddings is not None) else embeddings
-        self.labels = torch.tensor(labels, dtype=torch.long).to(DEVICE) if (labels is not None) else None
+        self.embeddings = torch.tensor(embeddings, dtype=torch.float32) # .to(DEVICE) if (embeddings is not None) else embeddings
+        self.labels = torch.tensor(labels, dtype=torch.long) # .to(DEVICE) if (labels is not None) else None
 
     def __len__(self):
         return len(self.index)

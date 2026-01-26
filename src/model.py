@@ -76,9 +76,9 @@ class MLP(torch.nn.Module):
         self.loss_weights = torch.FloatTensor(self.loss_weights).to(DEVICE)
 
     def _fit_scaler(self, dataset_train, dataset_test):
-        self.scaler.fit(dataset_train.embeddings)
-        dataset_train.embeddings = self.scaler.transform(dataset_train.embeddings)
-        dataset_test.embeddings = self.scaler.transform(dataset_test.embeddings)
+        self.scaler.fit(dataset_train.to_numpy())
+        dataset_train.embeddings = torch.FloatTensor(self.scaler.transform(dataset_train.to_numpy()))
+        dataset_test.embeddings = torch.FLoatTensor(self.scaler.transform(dataset_test.to_numpy()))
         return dataset_train, dataset_test
     
     def _get_loss(self, outputs, targets):
@@ -116,7 +116,7 @@ class MLP(torch.nn.Module):
         for epoch in tqdm(range(epochs), desc=f'MLP.fit: Training model {self.model_id}.'):
             train_loss = list() # Re-initialize the epoch loss. 
             for batch in loader:
-                outputs, targets = self(batch['embedding']), batch['label']
+                outputs, targets = self(batch['embedding'].to(DEVICE)), batch['label'].to(DEVICE)
                 # outputs, targets = self(batch['embedding']).to(DEVICE), batch['label'].to(DEVICE).long()
                 loss = self._get_loss(outputs, targets)
                 # Gradients accumulate by default, so if you don’t zero them before computing new gradients, you silently use the wrong gradient.
@@ -127,7 +127,7 @@ class MLP(torch.nn.Module):
             
                 train_loss.append(loss.item()) # Store each loss for computing metrics.  
 
-            test_inputs, test_targets = dataset_test.embeddings, dataset_test.labels
+            test_inputs, test_targets = dataset_test.embeddings.to(DEVICE), dataset_test.labels.to(DEVICE)
             test_outputs = self(test_inputs)
             test_loss = self._get_loss(test_outputs, test_targets).item()
 
