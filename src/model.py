@@ -140,7 +140,7 @@ class MLP(torch.nn.Module):
             train_losses.append(float(np.mean(train_loss)))
         
         self.load_state_dict(best_model_weights)
-        return {'train_loss':train_losses, 'test_loss':test_losses, 'epoch':np.arange(epochs)}
+        return {'train_loss':train_losses, 'test_loss':test_losses, 'epoch':list(range(epochs))}
 
     def predict(self, dataset, scale:bool=False) -> pd.DataFrame:
 
