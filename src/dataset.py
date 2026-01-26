@@ -32,7 +32,7 @@ class Dataset(torch.utils.data.Dataset):
     def subset(self, idxs:np.ndarray):
         embeddings = self.embeddings[idxs, :].clone().detach().cpu().numpy()
         index = self.index[idxs].copy()
-        labels = self.labels[idxs].clone.detach().cpu().numpy() if (self.labels is not None) else self.labels
+        labels = self.labels[idxs].clone().detach().cpu().numpy() if (self.labels is not None) else self.labels
         metadata = self.metadata.iloc[idxs].copy()
         return Dataset(embeddings=embeddings, index=index, labels=labels, metadata=metadata)
     
