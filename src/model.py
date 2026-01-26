@@ -136,8 +136,8 @@ class MLP(torch.nn.Module):
                 best_model_weights = copy.deepcopy(self.state_dict())
                 print(f'MLP.fit: New best model weights for {self.model_id} found after epoch {epoch}. Test loss is {test_loss}.', flush=True)
             
-            test_losses.append(test_loss)
-            train_losses.append(np.mean(train_loss))
+            test_losses.append(float(test_loss)) # Make sure these are floats so they are json-serializable.
+            train_losses.append(float(np.mean(train_loss)))
         
         self.load_state_dict(best_model_weights)
         return {'train_loss':train_losses, 'test_loss':test_losses, 'epoch':np.arange(epochs)}
