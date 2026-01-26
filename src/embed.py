@@ -31,7 +31,7 @@ class Embedder():
             outputs = self.model(batch_tokens, repr_layers=[33], return_contacts=False) # Layer 33 is the last layer of the model. 
             # This has shape tensor(batch_size, length, dim). 
             outputs = outputs['representations'][33]
-            outputs = [outputs[i, :length, :].mean(dim=1) for i, length in enumerate(batch_lengths)] # Remove the padding and mean-pool.
+            outputs = [outputs[i, :length, :].mean(dim=0) for i, length in enumerate(batch_lengths)] # Remove the padding and mean-pool.
         return outputs
    
     def __call__(self, inputs, max_aa_per_batch:int=10000):
