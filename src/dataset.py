@@ -38,11 +38,11 @@ class Dataset(torch.utils.data.Dataset):
         embedding_df = pd.read_hdf(path, key='embeddings')
         index = embedding_df.index.values.copy() # Make sure this is a numpy array. 
         embeddings = embedding_df.values.copy() # Why do I need to copy this?
-
+        metadata = None
         try:
             metadata = Dataset._read_hdf(path, key='metadata')
-            assert len(embedding_df) == len(metadata_df), 'Dataset.from_hdf: The indices of the embedding and the metadata do not match.'
-            assert np.all(embedding_df.index == metadata_df.index), 'Dataset.from_hdf: The indices of the embedding and the metadata do not match.'
+            assert len(embedding_df) == len(metadata), 'Dataset.from_hdf: The indices of the embedding and the metadata do not match.'
+            assert np.all(embedding_df.index == metadata.index), 'Dataset.from_hdf: The indices of the embedding and the metadata do not match.'
         except Exception: 
             print(f'Dataset.from_hdf: No metadata stored in the Dataset')
 

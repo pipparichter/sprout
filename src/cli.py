@@ -41,7 +41,6 @@ TREE_PARAMS = {}
 def train():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset-path', type=str)
-    parser.add_argument('--output-path', default=None, type=str)
     parser.add_argument('--model-class', default='mlp')
     parser.add_argument('--model-id', default='0')
     parser.add_argument('--output-dir', default='.')
