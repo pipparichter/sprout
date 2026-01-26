@@ -31,8 +31,14 @@ class Dataset(torch.utils.data.Dataset):
             return embeddings, labels 
         else:
             return embeddings
+        
+    def subset(self, idxs:np.ndarray):
+        embeddings = copy.deepcopy(self.embeddings[idxs, :])
+        index = self.index[idxs].copy()
+        labels = copy.deepcopy(self.labels) if (self.labels is not None) else self.labels
+        metadata = self.metadata.iloc[idxs]
+        return Dataset(embeddings=embeddings, index=index, labels=labels, metadata=metadata)
     
-
     @classmethod
     def from_hdf(cls, path:str):
         embedding_df = pd.read_hdf(path, key='embeddings')
@@ -65,7 +71,7 @@ def split(dataset, random_state:int=42):
     idxs = np.arange(len(dataset))
     train_idxs, test_idxs = train_test_split(idxs, test_size=0.2, stratify=labels, random_state=random_state)
 
-    dataset_train = Subset(dataset, train_idxs)
-    dataset_test = Subset(dataset, test_idxs)
+    dataset_train = dataset.subset(train_idxs)
+    dataset_test = dataset.subset(test_idxs)
     return dataset_train, dataset_test
 
