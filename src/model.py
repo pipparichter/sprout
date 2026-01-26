@@ -78,7 +78,7 @@ class MLP(torch.nn.Module):
     def _fit_scaler(self, dataset_train, dataset_test):
         self.scaler.fit(dataset_train.to_numpy())
         dataset_train.embeddings = torch.FloatTensor(self.scaler.transform(dataset_train.to_numpy()))
-        dataset_test.embeddings = torch.FLoatTensor(self.scaler.transform(dataset_test.to_numpy()))
+        dataset_test.embeddings = torch.FloatTensor(self.scaler.transform(dataset_test.to_numpy()))
         return dataset_train, dataset_test
     
     def _get_loss(self, outputs, targets):
@@ -109,7 +109,7 @@ class MLP(torch.nn.Module):
         optimizer = torch.optim.Adam(self.parameters(), lr=lr) # Optimizer updates model parameters based on loss gradients.
         loader = self._get_dataloader(dataset_train, alpha=0)
 
-        best_epoch, best_test_loss = 0, np.inf
+        best_test_loss = np.inf
         best_model_weights = copy.deepcopy(self.state_dict())
         test_losses, train_losses = list(), list()
 
