@@ -78,7 +78,7 @@ class MLP(torch.nn.Module):
         return obj
     
     @classmethod
-    def load(path:str):
+    def load(cls, path:str):
         with open(path, 'rb') as f:
             info = pickle.load(f)
         return MLP.from_dict(info)

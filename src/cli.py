@@ -66,8 +66,7 @@ def train():
 def predict():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset-path', type=str)
-    parser.add_argument('--model-path', default='mlp')
-    parser.add_argument('--model-id', default='0')
+    parser.add_argument('--model-path', default=None)
     parser.add_argument('--output-dir', default='.')
     args = parser.parse_args()
 
