@@ -63,7 +63,7 @@ class MLP(torch.nn.Module):
         info['scaler'] = self.scaler
         # Pickling the full model can break if the class definition changes or Python and PyTorch versions differ.
         # Just want to save the state dict for compatibility.
-        info['model'] = self.state_dict()
+        info['model'] = self.state_dict().cpu() # Will be annoying if not put back on CPU.
         if path is None:
             return info
         with open(path, 'wb') as f:
@@ -75,6 +75,7 @@ class MLP(torch.nn.Module):
         obj.model_id = info.get('model_id', '')
         obj.load_state_dict(info['model'])
         obj.scaler = info['scaler']
+        obj.to(DEVICE)
         return obj
     
     @classmethod
