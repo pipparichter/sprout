@@ -5,7 +5,7 @@ import copy
 from tqdm import tqdm
 import pickle 
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, average_precision_score
 import xgboost as xgb
 import torch.nn.functional as F
 
@@ -18,11 +18,27 @@ import torch.nn.functional as F
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-def get_auroc(labels, outputs):
-    '''Compute the ROC AUC (Area Under the Receiver Operating Characteristic Curve) score, which evaluates model 
-    performance in a threshold-agnostic way. It is based on the probability of a positive example being ranked more highly
-    than a negative example.'''
-    return roc_auc_score(labels, outputs, average='macro') 
+# Receiver operating characteristic curve plots false positive rate versus true positive rate, so captures only recall. 
+# Essentially gives "what is the probability that a randomly-chosen positive example is ranked more highly than a 
+# randomly-chosen negative example?"
+# TPR is (true positives) / (true positives + false negatives), which is the same as recall. 
+# FPR is (false positives / (false positives + true negatives)), "out of all true negatives, how many were messed up?"
+# Precision is (true positives) / (true positives + false positives)
+def get_roc_auc(labels, outputs):
+    '''Compute the ROC AUC'''
+    return float(roc_auc_score(labels, outputs, average='macro'))
+
+def get_pr_auc(labels, outputs):
+    '''Approximates the area under the precision recall curve.'''
+    return float(average_precision_score(labels, outputs))
+
+def get_metrics(labels, outputs):
+    metrics = dict()
+    metrics['roc_auc_1'] = get_roc_auc(labels, outputs)
+    metrics['roc_auc_0'] = get_roc_auc(1 - labels, 1 - outputs)
+    metrics['pr_auc_1'] = get_pr_auc(labels, outputs)
+    metrics['pr_auc_0'] = get_pr_auc(1 - labels, 1 - outputs)
+    return metrics
 
 
 class MLP(torch.nn.Module):
@@ -36,7 +52,7 @@ class MLP(torch.nn.Module):
         layers = [torch.nn.Linear(1280, 512, dtype=torch.float32), torch.nn.ReLU()]
         layers += [torch.nn.Linear(512, 256, dtype=torch.float32), torch.nn.ReLU()]
         layers += [torch.nn.Linear(256, 128, dtype=torch.float32), torch.nn.ReLU()]
-        layers += [torch.nn.Linear(128, 2, dtype=torch.float32)]
+        layers += [torch.nn.Linear(128, 1, dtype=torch.float32)]
         self.model = torch.nn.Sequential(*layers) # Initialize the sequential model. 
         self.scaler = StandardScaler()
         self.to(DEVICE)
@@ -52,7 +68,6 @@ class MLP(torch.nn.Module):
             return info
         with open(path, 'wb') as f:
             pickle.dump(info, f)
-
     
     @classmethod
     def from_dict(cls, info:dict):
@@ -68,7 +83,6 @@ class MLP(torch.nn.Module):
             info = pickle.load(f)
         return MLP.from_dict(info)
 
-
     def _fit_loss_weights(self, dataset_train, alpha:float=0.5):
         n_1, n_0 = (dataset_train.labels == 1).sum(), (dataset_train.labels == 0).sum()
         assert n_1 > n_0, 'MLP.loss: Expect label 1 to be the majority class.'
@@ -83,8 +97,10 @@ class MLP(torch.nn.Module):
     
     def _get_loss(self, outputs, targets):
         '''Implement weighted cross-entropy loss.'''
-        # F.cross_entropy applies softmax under the hood, so do not apply twice.
-        return F.cross_entropy(outputs, targets, weight=self.loss_weights)
+        # F.cross_entropy applies sigmoid under the hood, so do not apply twice.
+        # return F.cross_entropy(outputs, targets, weight=self.loss_weights)
+        weights = torch.where(targets == 1, 1, self.loss_weights[0])
+        return F.binary_cross_entropy_with_logits(outputs, targets, weight=weights)
 
     @staticmethod
     def _get_dataloader(dataset_train, alpha:float=0, batch_size:int=64):
@@ -142,15 +158,24 @@ class MLP(torch.nn.Module):
         self.load_state_dict(best_model_weights)
         return {'train_loss':train_losses, 'test_loss':test_losses, 'epoch':list(range(epochs))}
 
-    def predict(self, dataset, scale:bool=False) -> pd.DataFrame:
+    def predict(self, dataset) -> pd.DataFrame:
+
+        embeddings, labels = dataset.to_numpy()
+        embeddings = self.scaler.transform(embeddings)
+        embeddings = torch.FloatTensor(embeddings).to(DEVICE)
 
         self.eval() # Put the model in evaluation mode. This changes the forward behavior of the model (e.g. disables dropout).
         with torch.no_grad(): # Turn off gradient computation, which reduces memory usage. 
-            outputs = self(dataset.embeddings) # Run a forward pass of the model.
-            outputs = torch.nn.functional.softmax(outputs, 1) # Apply sigmoid activation, which is applied as a part of the loss function during training. 
-            outputs = outputs.cpu().numpy()
+            outputs = self(embeddings) # Run a forward pass of the model.
+            outputs = torch.nn.functional.sigmoid(outputs) # Apply sigmoid activation, which is applied as a part of the loss function during training. 
+            outputs = outputs.cpu().numpy().ravel()
         
-        return {'model_output_0':outputs[:, 0].ravel(), 'model_output_1':outputs[:, 1].ravel()}
+        result = {'outputs':outputs.tolist()}
+        if labels is not None:
+            result.update(get_metrics(labels, outputs))
+            result['labels'] = labels.tolist()
+
+        return result
 
 
 # https://xgboost.readthedocs.io/en/stable/python/python_intro.html

@@ -63,3 +63,20 @@ def train():
         json.dump(info, f)
 
 
+def predict():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dataset-path', type=str)
+    parser.add_argument('--model-path', default='mlp')
+    parser.add_argument('--model-id', default='0')
+    parser.add_argument('--output-dir', default='.')
+    args = parser.parse_args()
+
+    model = MLP.load(args.model_path)
+    dataset = Dataset.from_hdf(args.dataset_path)
+
+    results = model.predict(dataset)
+    results_path = os.path.join(args.output_dir, f'{model.model_id}.results.json')
+
+    with open(results_path, 'w') as f:
+        json.dump(results, f)
+

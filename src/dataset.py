@@ -15,7 +15,7 @@ class Dataset(torch.utils.data.Dataset):
         self.metadata = metadata
         self.index = index
         self.embeddings = torch.tensor(embeddings, dtype=torch.float32) # .to(DEVICE) if (embeddings is not None) else embeddings
-        self.labels = torch.tensor(labels, dtype=torch.long) # .to(DEVICE) if (labels is not None) else None
+        self.labels = torch.tensor(labels, dtype=torch.float32) #torch.long) # .to(DEVICE) if (labels is not None) else None
 
     def __len__(self):
         return len(self.index)
@@ -23,11 +23,8 @@ class Dataset(torch.utils.data.Dataset):
     def to_numpy(self, labels:bool=False):
         '''Convert embeddings and labels to a numpy array.'''
         embeddings = self.embeddings.cpu().numpy()
-        if labels:
-            labels = self.labels.cpu().numpy()
-            return embeddings, labels 
-        else:
-            return embeddings
+        labels = self.labels.labels.cpu().numpy() if (self.labels is not None) else None 
+        return embeddings, labels
         
     def subset(self, idxs:np.ndarray):
         embeddings = self.embeddings[idxs, :].clone().detach().cpu().numpy()
