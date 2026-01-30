@@ -75,7 +75,7 @@ def predict():
 
     results = model.predict(dataset)
     results_path = os.path.join(args.output_dir, f'{model.model_id}.results.json')
-    for metric in ['prc_auc_0', 'prc_auc_1', 'roc_auc_0', 'roc_auc_1']:
+    for metric in ['pr_auc_0', 'pr_auc_1', 'roc_auc_0', 'roc_auc_1']:
         print(metric, results[metric])
 
     with open(results_path, 'w') as f:
