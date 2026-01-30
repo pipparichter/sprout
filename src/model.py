@@ -90,9 +90,9 @@ class MLP(torch.nn.Module):
         self.loss_weights = torch.FloatTensor(self.loss_weights).to(DEVICE)
 
     def _fit_scaler(self, dataset_train, dataset_test):
-        self.scaler.fit(dataset_train.to_numpy())
-        dataset_train.embeddings = torch.FloatTensor(self.scaler.transform(dataset_train.to_numpy()))
-        dataset_test.embeddings = torch.FloatTensor(self.scaler.transform(dataset_test.to_numpy()))
+        embeddings_train, embeddings_test = dataset_train.to_numpy()[0], dataset_test.to_numpy()[0]
+        dataset_train.embeddings = torch.FloatTensor(self.scaler.fit_transform(embeddings_train))
+        dataset_test.embeddings = torch.FloatTensor(self.scaler.transform(embeddings_test))
         return dataset_train, dataset_test
     
     def _get_loss(self, outputs, targets):
