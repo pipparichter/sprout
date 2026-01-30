@@ -107,7 +107,7 @@ class MLP(torch.nn.Module):
         n_1, n_0 = (dataset_train.labels == 1).sum(), (dataset_train.labels == 0).sum()
         assert n_1 > n_0, 'MLP.loss: Expect label 0 to be the minority class.'
         weights = [(n_1 / n_0)**alpha, 1]
-        weights = [weights[label] for label in dataset_train.labels]
+        weights = [weights[int(label)] for label in dataset_train.labels]
         sampler = torch.utils.data.WeightedRandomSampler(weights=weights, num_samples=len(dataset_train), replacement=True)
         loader = torch.utils.data.DataLoader(dataset_train, batch_size=batch_size, sampler=sampler)
         return loader 
