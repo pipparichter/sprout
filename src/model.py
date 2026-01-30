@@ -59,11 +59,12 @@ class MLP(torch.nn.Module):
 
     
     def save(self, path:str=None):
+        self.cpu() # Will be annoying if not put back on CPU.
         info = {'model_id':self.model_id}
         info['scaler'] = self.scaler
         # Pickling the full model can break if the class definition changes or Python and PyTorch versions differ.
         # Just want to save the state dict for compatibility.
-        info['model'] = self.state_dict().cpu() # Will be annoying if not put back on CPU.
+        info['model'] = self.state_dict()
         if path is None:
             return info
         with open(path, 'wb') as f:
