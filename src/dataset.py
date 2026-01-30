@@ -23,7 +23,7 @@ class Dataset(torch.utils.data.Dataset):
     def to_numpy(self, labels:bool=False):
         '''Convert embeddings and labels to a numpy array.'''
         embeddings = self.embeddings.cpu().numpy()
-        labels = self.labels.labels.cpu().numpy() if (self.labels is not None) else None 
+        labels = self.labels.cpu().numpy() if (self.labels is not None) else None 
         return embeddings, labels
         
     def subset(self, idxs:np.ndarray):
