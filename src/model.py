@@ -99,6 +99,7 @@ class MLP(torch.nn.Module):
         '''Implement weighted cross-entropy loss.'''
         # F.cross_entropy applies sigmoid under the hood, so do not apply twice.
         # return F.cross_entropy(outputs, targets, weight=self.loss_weights)
+        targets = targets.float().view(-1, 1) # So that the loss function doesn't bug out. 
         weights = torch.where(targets == 1, 1, self.loss_weights[0])
         return F.binary_cross_entropy_with_logits(outputs, targets, weight=weights)
 
