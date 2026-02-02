@@ -68,6 +68,6 @@ def split(dataset, random_state:int=42):
     dataset_train = dataset.subset(train_idxs)
     dataset_test = dataset.subset(test_idxs)
     print(f'split: Training dataset size: {len(dataset_train)}')
-    print(f'split: Testing dataset size: {len(dataset_test)}')
+    print(f'split: Testing dataset size: {len(dataset_test)}', end='\n\n')
     return dataset_train, dataset_test
 

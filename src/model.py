@@ -269,7 +269,7 @@ class Ensemble():
     def fit(self, datasets, epochs:int=100, lr:float=1e-4, batch_size:int=64, alpha:float=0.5):
         losses = dict()
         for i, model in enumerate(self.models):
-            print(f'Ensemble.fit: Training model {i} of {self.n_models}.', end='\n\n')
+            print(f'\nEnsemble.fit: Training model {i + 1} of {self.n_models}.', end='\n')
             losses[model.model_id] = model.fit(datasets, epochs=epochs, lr=lr, batch_size=batch_size, alpha=alpha)
         return losses
     
