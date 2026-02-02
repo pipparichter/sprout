@@ -174,6 +174,7 @@ class MLP(torch.nn.Module):
             outputs = outputs.cpu().numpy().ravel()
         
         result = {'outputs':outputs.tolist()}
+        result['index'] = dataset.index.tolist()
         if labels is not None:
             result.update(get_metrics(labels, outputs))
             result['labels'] = labels.tolist()
