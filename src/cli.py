@@ -2,7 +2,7 @@ import pandas as pd
 import argparse
 from src.embed import Embedder 
 import numpy as np 
-from src.model import MLP, Tree
+from src.model import MLP, Tree, Ensemble
 from src.dataset import Dataset, split
 import os 
 # import pickle
@@ -45,11 +45,16 @@ def train():
     parser.add_argument('--model-class', default='mlp')
     parser.add_argument('--model-id', default='0')
     parser.add_argument('--output-dir', default='.')
+    parser.add_argument('--n-models', type=int, default=1)
     args = parser.parse_args()
 
-    model = MLP(model_id=args.model_id)
     dataset = Dataset.from_hdf(args.dataset_path)
     dataset_train, dataset_test = split(dataset)
+
+    if args.n_models > 1:
+        model = MLP(model_id=args.model_id)
+    else:
+        model = Ensemble(n_models=args.n_models, model_class='mlp')
 
     info = dict()
     info['results'] = model.fit((dataset_train, dataset_test), **MLP_PARAMS)
@@ -61,6 +66,7 @@ def train():
 
     with open(summary_path, 'w') as f:
         json.dump(info, f)
+
 
 
 def predict():

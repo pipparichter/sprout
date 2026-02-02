@@ -153,7 +153,7 @@ class MLP(torch.nn.Module):
             if test_loss < best_test_loss:
                 best_test_loss = test_loss
                 best_model_weights = copy.deepcopy(self.state_dict())
-                print(f'MLP.fit: New best model weights for {self.model_id} found after epoch {epoch}. Test loss is {test_loss}.', flush=True)
+                print(f'MLP.fit: New best model weights for {self.model_id} found after epoch {epoch}. test_loss={test_loss:.4f}.', flush=True)
             
             test_losses.append(float(test_loss)) # Make sure these are floats so they are json-serializable.
             train_losses.append(float(np.mean(train_loss)))
@@ -258,23 +258,30 @@ class Tree():
 
 class Ensemble():
 
-    def __init__(self, n_models:int=5, model_class=MLP, init_models:bool=True):
-
+    def __init__(self, model_id:int=0, n_models:int=5, model_class='mlp', init_models:bool=True):
+        
+        model_classes = {'mlp':MLP}
+        self.model_class = model_class
+        self.model_id = f'{model_class}_x{n_models}_{model_id}'
         self.n_models = n_models
-        self.models = [] if (not init_models) else [model_class(model_id=i) for i in range(n_models)]
+        self.models = [] if (not init_models) else [model_classes.get(model_class)(model_id=i) for i in range(n_models)]
 
     def fit(self, datasets, epochs:int=100, lr:float=1e-4, batch_size:int=64, alpha:float=0.5):
-
-        loss_df = list()
+        losses = dict()
+        for i, model in enumerate(self.models):
+            print(f'Ensemble.fit: Training model {i} of {self.n_models}.', end='\n\n')
+            losses[model.model_id] = model.fit(datasets, epochs=epochs, lr=lr, batch_size=batch_size, alpha=alpha)
+        return losses
+    
+    def predict(self, dataset):
+        results = dict()
         for model in self.models:
-            losses = model.fit(datasets, epochs=epochs, lr=lr, batch_size=batch_size, alpha=alpha)
-            loss_df.append(pd.DataFrame(losses).assign(model_id=model.model_id))
-        loss_df = pd.concat(loss_df)
-
-        return loss_df
+            results[model.model_id] = model.predict(dataset)
+        return results
 
     def save(self, path):
         info = {'n_models': self.n_models}
+        info['model_id'] = self.model_id
         info['models'] = [model.save(path=None) for model in self.models]
         with open(path, 'wb') as f:
             pickle.dump(info, f)
@@ -286,6 +293,7 @@ class Ensemble():
         
         obj = cls(n_models=info['n_models'], model_class=model_class, init_models=False)
         obj.models = [model_class.from_dict(model_info) for model_info in info['models']]
+        obj.model_id = info['model_id']
         return obj
     
 
