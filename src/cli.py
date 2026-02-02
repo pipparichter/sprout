@@ -74,16 +74,26 @@ def predict():
     parser.add_argument('--dataset-path', type=str)
     parser.add_argument('--model-path', default=None)
     parser.add_argument('--output-dir', default='.')
+    parser.add_argument('--model-class', default='mlp', type=str)
     args = parser.parse_args()
 
-    model = MLP.load(args.model_path)
+    model_classes = {'mlp':MLP, 'ensemble':Ensemble}
+    model = model_classes.get(args.model_class).load(args.model_path)
     dataset = Dataset.from_hdf(args.dataset_path)
 
     results = model.predict(dataset)
     results_path = os.path.join(args.output_dir, f'{model.model_id}.results.json')
-    for metric in ['pr_auc_0', 'pr_auc_1', 'roc_auc_0', 'roc_auc_1']:
-        print(metric, results[metric])
 
     with open(results_path, 'w') as f:
         json.dump(results, f)
+
+    if isinstance(model, Ensemble):
+        for model_id, results_ in results.items():
+            print(f'\nmodel {model_id}')
+            for metric in ['pr_auc_0', 'pr_auc_1', 'roc_auc_0', 'roc_auc_1']:
+                print(metric, results_[metric])
+    else:
+        for metric in ['pr_auc_0', 'pr_auc_1', 'roc_auc_0', 'roc_auc_1']:
+            print(metric, results[metric])
+
 
