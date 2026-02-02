@@ -90,6 +90,8 @@ def predict():
 
     if isinstance(model, Ensemble):
         for model_id, results_ in results.items():
+            if model_id == 'ids':
+                continue
             print(f'\nmodel {model_id}')
             for metric in ['pr_auc_0', 'pr_auc_1', 'roc_auc_0', 'roc_auc_1']:
                 print(metric, results_[metric])
