@@ -51,7 +51,7 @@ def train():
     dataset = Dataset.from_hdf(args.dataset_path)
     dataset_train, dataset_test = split(dataset)
 
-    if args.n_models > 1:
+    if args.n_models == 1:
         model = MLP(model_id=args.model_id)
     else:
         model = Ensemble(n_models=args.n_models, model_class='mlp')
