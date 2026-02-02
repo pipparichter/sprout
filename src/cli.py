@@ -82,6 +82,7 @@ def predict():
     dataset = Dataset.from_hdf(args.dataset_path)
 
     results = model.predict(dataset)
+    results['ids'] = dataset.metadata['id'].index.values.tolist()
     results_path = os.path.join(args.output_dir, f'{model.model_id}.results.json')
 
     with open(results_path, 'w') as f:
